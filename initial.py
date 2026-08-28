@@ -43,9 +43,21 @@ for episode in range (episodes):
 
 print(q_table)
 
-        
+state = 0
 
+print("Now Testing the agent ooo:")
 
+while state != goal_state:
+    print("Current State: ", state)
+    action = np.argmax(q_table[state])
 
+    if action == left:
+        print("Action: left")
+        state = max(0,state-1)
 
+    else:
+        print("Action: right")
+        state = min(5,state+1)
 
+print("Current State: ", state)
+print("Goal Reached!")
