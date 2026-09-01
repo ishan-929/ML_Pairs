@@ -14,6 +14,9 @@ arm_length = 0.5
 angle_bins = [-10,-5,-3,-2,-1,-0.5,0,0.5,1,2,3,5,10,15]
 velocity_bins = [-60,-10,10,60]
 actions = [-8.0, -4.0, 0.0, 4.0, 8.0]
+episode_rewards = []
+episode_lengths = []
+average_rewards = []
 q_table = np.zeros((75,5))
 alpha = 0.1
 gamma = 0.9
@@ -25,6 +28,7 @@ for episode in range (episodes):
 
     angle = 0.0
     angular_velocity = 0.0
+    total_reward = 0.0
 
     for step in range (300): 
         angle_degrees = math.degrees(angle)
@@ -62,7 +66,8 @@ for episode in range (episodes):
         new_velocity_bin = np.digitize(new_velocity_degrees, velocity_bins)
         new_state = new_angle_bin * 5 + new_velocity_bin
 
-        reward = -abs(new_angle_degrees)
+        reward = -abs(new_angle_degrees) - 0.05 * abs(new_velocity_degrees)
+        total_reward += reward
 
         old_q = q_table[state][action]
         better_q = np.max(q_table[new_state])
@@ -74,7 +79,16 @@ for episode in range (episodes):
         if abs(math.degrees(angle)) > 30:
             break
 
+    steps_survived = step + 1
+    episode_rewards.append(total_reward)
+    episode_lengths.append(steps_survived)
+    average_rewards.append(total_reward / steps_survived)
+
 
 print("angle: ", math.degrees(angle))
 print("angular velocity: ", angular_velocity)
-print("State: ", state)
+print("State: ", new_state)
+print("First 10 lengths:", episode_lengths[:10])
+print("Last 10 lengths:", episode_lengths[-10:])
+print("First 10 averages:", average_rewards[:10])
+print("Last 10 averages:", average_rewards[-10:])
