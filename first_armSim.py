@@ -129,12 +129,13 @@ for step in range (300):
     if abs(math.degrees(angle)) > 30:
         break
 
+    mad = np.mean(np.abs(test_angles))
+
 print("First 10 lengths:", episode_lengths[:10])
 print("Last 10 lengths:", episode_lengths[-10:])
-
 print("First 10 averages:", average_rewards[:10])
 print("Last 10 averages:", average_rewards[-10:])
-
 print("Test final angle:", math.degrees(angle))
 print("Test final angular velocity:", angular_velocity)
 print("Test steps survived:", step + 1)
+print("MAD:", mad)
