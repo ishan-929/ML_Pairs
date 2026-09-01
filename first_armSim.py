@@ -14,32 +14,67 @@ arm_length = 0.5
 angle_bins = [-10,-5,-3,-2,-1,-0.5,0,0.5,1,2,3,5,10,15]
 velocity_bins = [-60,-10,10,60]
 actions = [-8.0, -4.0, 0.0, 4.0, 8.0]
-action = 3
-motor_torque = actions[action]
-
+q_table = np.zeros((75,5))
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.2
 damping = 0.2
+episodes = 1000
 
-for step in range (300):
-    arm_gravity_torque = -arm_mass * gravity * (arm_length/2) * math.cos(angle)
-    payload_gravity_torque = -payload_mass * gravity * arm_length * math.cos(angle)
-    gravity_torque = payload_gravity_torque + arm_gravity_torque
-    arm_inertia = (1/3) * arm_mass * arm_length **2
-    payload_inertia = payload_mass * arm_length ** 2
-    inertia = arm_inertia + payload_inertia
-    damping_torque = -damping * angular_velocity
-    net_torque = motor_torque + gravity_torque + damping_torque
+for episode in range (episodes):
 
-    angular_acceleration = net_torque / inertia
-    angular_velocity = angular_velocity + angular_acceleration * dt
-    angle = angle + angular_velocity * dt
-    angle_degrees = math.degrees(angle)
-    velocity_degrees = math.degrees(angular_velocity)
+    angle = 0.0
+    angular_velocity = 0.0
 
-    angle_bin = np.digitize(angle_degrees, angle_bins)
-    velocity_bin = np.digitize(velocity_degrees, velocity_bins)
+    for step in range (300): 
+        angle_degrees = math.degrees(angle)
+        velocity_degrees = math.degrees(angular_velocity)
 
-    state = angle_bin * 5 + velocity_bin 
+        angle_bin = np.digitize(angle_degrees, angle_bins)
+        velocity_bin = np.digitize(velocity_degrees, velocity_bins)
 
-    print("angle: ", math.degrees(angle))
-    print("angular velocity: ", angular_velocity)
-    print("State: ", state)
+        state = angle_bin * 5 + velocity_bin 
+
+        if np.random.random() < epsilon:
+            action = np.random.randint(0,5)
+        else:
+            action = np.argmax(q_table[state])
+
+        motor_torque = actions[action]
+
+        arm_gravity_torque = -arm_mass * gravity * (arm_length/2) * math.cos(angle)
+        payload_gravity_torque = -payload_mass * gravity * arm_length * math.cos(angle)
+        gravity_torque = payload_gravity_torque + arm_gravity_torque
+        arm_inertia = (1/3) * arm_mass * arm_length **2
+        payload_inertia = payload_mass * arm_length ** 2
+        inertia = arm_inertia + payload_inertia
+        damping_torque = -damping * angular_velocity
+        net_torque = motor_torque + gravity_torque + damping_torque
+
+        angular_acceleration = net_torque / inertia
+        angular_velocity = angular_velocity + angular_acceleration * dt
+        angle = angle + angular_velocity * dt
+
+        new_angle_degrees = math.degrees(angle)
+        new_velocity_degrees = math.degrees(angular_velocity)
+
+        new_angle_bin = np.digitize(new_angle_degrees, angle_bins)
+        new_velocity_bin = np.digitize(new_velocity_degrees, velocity_bins)
+        new_state = new_angle_bin * 5 + new_velocity_bin
+
+        reward = -abs(new_angle_degrees)
+
+        old_q = q_table[state][action]
+        better_q = np.max(q_table[new_state])
+
+        new_q = old_q + alpha * (reward + gamma * better_q - old_q)
+
+        q_table[state][action] = new_q
+
+        if abs(math.degrees(angle)) > 30:
+            break
+
+
+print("angle: ", math.degrees(angle))
+print("angular velocity: ", angular_velocity)
+print("State: ", state)
