@@ -14,9 +14,11 @@ arm_length = 0.5
 angle_bins = [-10,-5,-3,-2,-1,-0.5,0,0.5,1,2,3,5,10,15]
 velocity_bins = [-60,-10,10,60]
 actions = [-8.0, -4.0, 0.0, 4.0, 8.0]
+
 episode_rewards = []
 episode_lengths = []
 average_rewards = []
+
 q_table = np.zeros((75,5))
 alpha = 0.1
 gamma = 0.9
@@ -84,11 +86,55 @@ for episode in range (episodes):
     episode_lengths.append(steps_survived)
     average_rewards.append(total_reward / steps_survived)
 
+angle = 0.0
+angular_velocity = 0.0
 
-print("angle: ", math.degrees(angle))
-print("angular velocity: ", angular_velocity)
-print("State: ", new_state)
+test_angles = []
+test_velocities = []
+
+for step in range (300):
+    angle_degrees = math.degrees(angle)
+    velocity_degrees = math.degrees(angular_velocity)
+
+    angle_bin = np.digitize(angle_degrees, angle_bins)
+    velocity_bin = np.digitize(velocity_degrees, velocity_bins)
+
+    state = angle_bin * 5 + velocity_bin 
+    action = np.argmax(q_table[state])
+
+    motor_torque = actions[action]
+
+    arm_gravity_torque = -arm_mass * gravity * (arm_length/2) * math.cos(angle)
+    payload_gravity_torque = (
+        -payload_mass * gravity * arm_length * math.cos(angle)
+    )
+
+    gravity_torque = payload_gravity_torque + arm_gravity_torque
+
+    arm_inertia = (1/3) * arm_mass * arm_length ** 2
+    payload_inertia = payload_mass * arm_length ** 2
+    inertia = arm_inertia + payload_inertia
+
+    damping_torque = -damping * angular_velocity
+    net_torque = motor_torque + gravity_torque + damping_torque
+
+    angular_acceleration = net_torque / inertia
+
+    angular_velocity = angular_velocity + angular_acceleration * dt
+    angle = angle + angular_velocity * dt
+
+    test_angles.append(math.degrees(angle))
+    test_velocities.append(math.degrees(angular_velocity))
+
+    if abs(math.degrees(angle)) > 30:
+        break
+
 print("First 10 lengths:", episode_lengths[:10])
 print("Last 10 lengths:", episode_lengths[-10:])
+
 print("First 10 averages:", average_rewards[:10])
 print("Last 10 averages:", average_rewards[-10:])
+
+print("Test final angle:", math.degrees(angle))
+print("Test final angular velocity:", angular_velocity)
+print("Test steps survived:", step + 1)
